@@ -1,0 +1,178 @@
+<html>
+<head>
+
+<title>Spocklight: Introduction to Spock Testing</title>
+
+<script language="javascript" src="scripts/shCore.js"></script> 
+<script language="javascript" src="scripts/shLegacy.js"></script> 
+<script language="javascript" src="scripts/shBrushJava.js"></script> 
+<script language="javascript" src="scripts/shBrushXml.js"></script> 
+<script language="javascript" src="scripts/shBrushJScript.js"></script> 
+<script language="javascript" src="scripts/shBrushGroovy.js"></script> 
+<script language="javascript" src="scripts/shBrushPlain.js"></script> 
+<script language="javascript" src="scripts/shBrushBash.js"></script> 
+ 
+<link href="styles/reset.css" rel="stylesheet" type="text/css" />
+<link href="styles/shCore.css" rel="stylesheet" type="text/css" />
+<link type="text/css" rel="stylesheet" href="styles/shThemeRDark.css"/>
+<link href="styles/blog.css" rel="stylesheet" type="text/css" />
+
+</head>
+<body>
+
+<a href="index.html">Back to index</a>
+
+<h3 class="post-title">Spocklight: Introduction to Spock Testing</h3>
+
+<div class="post">
+<p>In this blog entry we will start with a simple <a href="http://spockframework.org">Spock</a> specification for a Groovy class we create. We can learn <a href="http://code.google.com/p/spock/wiki/WhySpock">why to use Spock</a> on the Spock website. In this article we show with code how our tests will work with Spock. To get started with this sample we need <a href="http://www.gradle.org">Gradle</a> installed on our machine and nothing else. The current release of Gradle at the time of writing this entry is 0.9-preview-3.</p>
+<p>First we need to create a new directory for our little project and then we create a new <code>build.gradle</code> file:</p>
+<pre class="brush:plain">
+$ mkdir spock-intro
+$ cd spock-intro
+$ mkdir -p src/main/groovy/com/mrhaki/blog src/test/groovy/com/mrhaki/blog
+</pre>
+<pre class="brush:groovy">
+// File: build.gradle
+apply plugin: 'groovy'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    groovy 'org.codehaus.groovy:groovy:1.7.3'
+    testCompile 'org.spockframework:spock-core:0.4-groovy-1.7'
+}
+</pre>
+<p>Next we create our tests, but in Spock they are called specifications. We only need to extend the <code>spock.lang.Specification</code> and we get all the Spock magic in our hands. We start simple by defining a specification where we want to count the number of users in a <code>UserService</code> class. We are going to create the <code>UserService</code> class later, we start first with our specification:</p>
+<pre class="brush:groovy">
+package com.mrhaki.blog
+
+import spock.lang.Specification
+
+class UserServiceSpecification extends Specification {
+
+    def "Return total number of users"() {
+        setup: 'Create UserService instance with 2 users'
+        UserService userService = new UserService(users: ['mrhaki', 'hubert'])
+
+        expect: 'Invoke count() method'
+        2 == userService.count()
+    }
+
+}
+</pre>
+<p>Notice at line 6 how we can use very descriptive method names by using String literals. Next we create an instance of the <code>UserService</code> class and pass a list of two users at line 8. And then we check if the return value is the expected value 2 with a simple assertion statement. Spock provides a very readable way to write code. Mostly we first setup code for testing, run the code   and finally test the results. This logic is supported nicely by Spock by using the labels <code>setup</code> and <code>expect</code>. Later on we see more of these labels.</p>
+<p>Before we run the test we create our <code>UserService</code> class:</p>
+<pre class="brush:groovy">
+package com.mrhaki.blog
+
+class UserService {
+
+    Collection&lt;String&gt; users
+
+    int count() {
+        users ? users.size() : 0
+    }
+
+}
+</pre>
+<p>We can run our code and test with the following command:</p>
+<pre class="brush:shell">
+$ gradle test
+:compileJava UP-TO-DATE
+:compileGroovy
+:processResources UP-TO-DATE
+:classes
+:compileTestJava
+:compileTestGroovy
+:processTestResources UP-TO-DATE
+:testClasses
+:test
+
+BUILD SUCCESSFUL
+
+Total time: 12.475 secs
+</pre>
+<p>The source files are compiled and our specification is run. We get the <code>BUILD SUCCESSFUL</code> message indicating our test runs fine. If the test would fail we can open <code>build/reports/tests/index.html</code> or <code>build/test-results/TEST-com.mrhaki.blog.UserServiceSpecification.xml</code> to see the failure.</p>
+<p>We specified the <code>count()</code> method must return the number of users, but we only check it for 2 elements, but what if we want to test to see if 0 and 1 user also return the correct count value? We can create new methods in our specification class, but Spock makes it so easy to do this elegantly:</p>
+<pre class="brush:groovy">
+package com.mrhaki.blog
+
+import spock.lang.Specification
+
+class UserServiceSpecification extends Specification {
+
+    def "Return total number of users"() {
+        setup: 'Create UserService instance with users'
+        UserService userService = new UserService(users: userList)
+
+        expect: 'Invoke count() method'
+        expectedCount == userService.count()
+
+        where:
+        expectedCount   | userList
+        0               | null
+        0               | []
+        1               | ['mrhaki']
+        2               | ['mrhaki', 'hubert']
+    }
+
+}
+</pre>
+<p>So what happens here? We use a new label <code>where</code> which contains a data table. Each row of the data table represent a new test run with the data from the row. In the <code>setup</code> block we used an unbound variable <code>userList</code> and in the <code>expect</code> block the unbound variable <code>expectedCount</code>. The variables get their values from the data table rows in the <code>where</code> block. So the first run the <code>UserService</code> instances gets <code>null</code> assigned to the <code>users</code> property and we expect the value 0 to be returned by the <code>count()</code> method. In the second run we pass an empty list and expect also 0 from the <code>count()</code> method. We have four rows, so our test is run four times when we invoke <code>$ gradle test</code>.</p>
+<p>We can make the fact that four tests are run explicit by using the <code>@Unroll</code> annotation. We can use a String as argument describing the specific variable values used in a run. If we use the <code>#</code> followed by the unbound variable name will it be replaced when we run the code:</p>
+<pre class="brush:groovy">
+package com.mrhaki.blog
+
+import spock.lang.Specification
+import spock.lang.Unroll
+
+class UserServiceSpecification extends Specification {
+
+    @Unroll("Expect to count #expectedCount users for following list #userList")
+    def "Return total number of users"() {
+        setup: 'Create UserService instance with users'
+        UserService userService = new UserService(users: userList)
+
+        expect: 'Invoke count() method'
+        expectedCount == userService.count()
+
+        where:
+        expectedCount   | userList
+        0               | null
+        0               | []
+        1               | ['mrhaki']
+        2               | ['mrhaki', 'hubert']
+    }
+
+}
+</pre>
+<p>The generated XML with the test result contains the four runs with their specific names:</p>
+<pre class="brush:xml">
+&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;testsuite errors="0" failures="0" hostname="ci-test" name="com.mrhaki.blog.UserServiceSpecification" tests="4" time="0.707" timestamp="2010-06-29T18:17:24"&gt;
+  &lt;properties /&gt;
+  &lt;testcase classname="com.mrhaki.blog.UserServiceSpecification" name="Expect to count 0 users for following list null" time="0.152" /&gt;
+  &lt;testcase classname="com.mrhaki.blog.UserServiceSpecification" name="Expect to count 0 users for following list []" time="0.027" /&gt;
+  &lt;testcase classname="com.mrhaki.blog.UserServiceSpecification" name="Expect to count 1 users for following list [mrhaki]" time="0.0050" /&gt;
+  &lt;testcase classname="com.mrhaki.blog.UserServiceSpecification" name="Expect to count 2 users for following list [mrhaki, hubert]" time="0.0010" /&gt;
+  &lt;system-out&gt;&lt;![CDATA[]]&gt;&lt;/system-out&gt;
+  &lt;system-err&gt;&lt;![CDATA[]]&gt;&lt;/system-err&gt;
+&lt;/testsuite&gt;
+</pre>
+<p>This concludes the introduction to Spock testing. In the future we learn more about Spock and the great features it provide to make writing tests easy and fun.</p
+</div>
+
+<script language="javascript"> 
+SyntaxHighlighter.config.bloggerMode = true;
+SyntaxHighlighter.config.clipboardSwf = 'scripts/clipboard.swf';
+SyntaxHighlighter.defaults['first-line'] = 0;
+SyntaxHighlighter.defaults['auto-links'] = false;
+SyntaxHighlighter.all();
+dp.SyntaxHighlighter.HighlightAll('code');
+</script>
+
+</body>
+</html>

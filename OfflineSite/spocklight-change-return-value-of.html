@@ -1,0 +1,106 @@
+<html>
+<head>
+
+<title>Spocklight: Change Return Value of Mocked or Stubbed Service Based On Argument Value</title>
+
+<script language="javascript" src="scripts/shCore.js"></script> 
+<script language="javascript" src="scripts/shLegacy.js"></script> 
+<script language="javascript" src="scripts/shBrushJava.js"></script> 
+<script language="javascript" src="scripts/shBrushXml.js"></script> 
+<script language="javascript" src="scripts/shBrushJScript.js"></script> 
+<script language="javascript" src="scripts/shBrushGroovy.js"></script> 
+<script language="javascript" src="scripts/shBrushPlain.js"></script> 
+<script language="javascript" src="scripts/shBrushBash.js"></script> 
+ 
+<link href="styles/reset.css" rel="stylesheet" type="text/css" />
+<link href="styles/shCore.css" rel="stylesheet" type="text/css" />
+<link type="text/css" rel="stylesheet" href="styles/shThemeRDark.css"/>
+<link href="styles/blog.css" rel="stylesheet" type="text/css" />
+
+</head>
+<body>
+
+<a href="index.html">Back to index</a>
+
+<h3 class="post-title">Spocklight: Change Return Value of Mocked or Stubbed Service Based On Argument Value</h3>
+
+<div class="post">
+<p>My colleague <a href="http://blog.jdriven.com/author/albert/">Albert van Veen</a> wrote a blog post about <a href="http://blog.jdriven.com/2013/04/using-argumentmatchers-with-mockito/">Using ArgumentMatchers with Mockito</a>. The idea is to let a mocked or stubbed service return a different value based on the argument passed into the service. This is inspired me to write the same sample with <a href="http://code.google.com/p/spock/">Spock</a>.</p><p>Spock already has built-in mock and stub support, so first of all we don&#8217;t need an extra library to support mocking and stubbing. We can easily create a mock or stub with the <code>Mock()</code> and <code>Stub()</code> methods. We will see usage of both in the following examples.</p><p>In the first example we simply return true or false for <code>ChocolateService.doesCustomerLikesChocolate()</code> in the separate test methods.</p><pre class="brush:groovy">import spock.lang.*
+
+public class CandyServiceSpecification extends Specification {
+
+    private ChocolateService chocolateService = Mock()
+    private CandyService candyService = new CandyServiceImpl()
+ 
+    def setup() {
+        candyService.chocolateService = chocolateService
+    }
+
+    def "Customer Albert really likes chocolate"() {
+        given:
+        final Customer customer = new Customer(firstName: 'Albert')
+
+        and: 'Mock returns true'
+        1 * chocolateService.doesCustomerLikesChocolate(customer) &gt;&gt; true
+        
+        expect: 'Albert likes chocolate'
+        candyService.getCandiesLikeByCustomer(customer).contains Candy.CHOCOLATE
+    }
+
+    def "Other customer do not like chocolate"() {
+        given:
+        final Customer customer = new Customer(firstName: 'Any other firstname')
+
+        and: 'Mock returns false'
+        1 * chocolateService.doesCustomerLikesChocolate(customer) &gt;&gt; false
+        
+        expect: 'Customer does not like chocolate'
+        !candyService.getCandiesLikeByCustomer(customer).contains(Candy.CHOCOLATE)
+    }
+
+}
+</pre><p>In the following example we mimic the ArgumentMatcher and this time we use a stub instead of mock.</p><pre class="brush:groovy">import spock.lang.*
+
+public class CandyServiceSpecification extends Specification {
+
+    private CandyService candyService = new CandyServiceImpl()
+ 
+    def setup() {
+        candyService.chocolateService = Stub(ChocolateService) {
+            getCandiesLikeByCustomer(_) &gt;&gt; { Customer customer -&gt;
+                customer?.firstName == 'Albert'
+            }
+        }
+    }
+
+    def "Customer Albert really likes chocolate"() {
+        given:
+        final Customer customer = new Customer(firstName: 'Albert')
+        
+        expect: 'Albert likes chocolate'
+        candyService.getCandiesLikeByCustomer(customer).contains Candy.CHOCOLATE
+    }
+
+    def "Other customer do not like chocolate"() {
+        given:
+        final Customer customer = new Customer(firstName: 'Any other firstname')
+        
+        expect: 'Customer does not like chocolate'
+        !candyService.getCandiesLikeByCustomer(customer).contains(Candy.CHOCOLATE)
+    }
+
+}
+</pre><p>Code written with Spock 0.7-groovy-2.0</p
+</div>
+
+<script language="javascript"> 
+SyntaxHighlighter.config.bloggerMode = true;
+SyntaxHighlighter.config.clipboardSwf = 'scripts/clipboard.swf';
+SyntaxHighlighter.defaults['first-line'] = 0;
+SyntaxHighlighter.defaults['auto-links'] = false;
+SyntaxHighlighter.all();
+dp.SyntaxHighlighter.HighlightAll('code');
+</script>
+
+</body>
+</html>

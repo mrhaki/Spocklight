@@ -1,0 +1,138 @@
+<html>
+<head>
+
+<title>Spocklight: Writing Assertions for Arguments Mock Methods</title>
+
+<script language="javascript" src="scripts/shCore.js"></script> 
+<script language="javascript" src="scripts/shLegacy.js"></script> 
+<script language="javascript" src="scripts/shBrushJava.js"></script> 
+<script language="javascript" src="scripts/shBrushXml.js"></script> 
+<script language="javascript" src="scripts/shBrushJScript.js"></script> 
+<script language="javascript" src="scripts/shBrushGroovy.js"></script> 
+<script language="javascript" src="scripts/shBrushPlain.js"></script> 
+<script language="javascript" src="scripts/shBrushBash.js"></script> 
+ 
+<link href="styles/reset.css" rel="stylesheet" type="text/css" />
+<link href="styles/shCore.css" rel="stylesheet" type="text/css" />
+<link type="text/css" rel="stylesheet" href="styles/shThemeRDark.css"/>
+<link href="styles/blog.css" rel="stylesheet" type="text/css" />
+
+</head>
+<body>
+
+<a href="index.html">Back to index</a>
+
+<h3 class="post-title">Spocklight: Writing Assertions for Arguments Mock Methods</h3>
+
+<div class="post">
+<p>My colleague <a href="">Arthur Arts</a> has written a blog post <a href="http://blog.jdriven.com/2012/10/mockito-using-argumentcaptor-for-generic-typed-collections/">Tasty Test Tip: Using ArgumentCaptor for generic collections with Mockito</a>. This inspired me to do the same in Spock. With the ArgumentCaptor in Mockito the parameters of a method call to a mock are captured and can be verified with assertions. In Spock we can also get a hold on the arguments that are passed to method call of a mock and we can write assertions to check the parameters for certain conditions.</p><p>When we create a mock in Spock and invoke a method on the mock the arguments are matched using the <code>equals()</code> implementation of the argument type. If they are not equal Spock will tell us by showing a message that there are too few invocations of the method call. Let's show this with an example. First we create some classes we want to test:</p><pre class="brush:groovy">package com.mrhaki.spock
+
+public class ClassUnderTest {
+
+    private final Greeting greeting
+
+    ClassUnderTest(final Greeting greeting) {
+        this.greeting = greeting
+    }
+
+    String greeting(final List&lt;Person&gt; people) {
+        greeting.sayHello(people)
+    }
+}
+</pre><pre class="brush:groovy">package com.mrhaki.spock
+
+interface Greeting {
+    String sayHello(final List&lt;Person&gt; people)
+}
+</pre><pre class="brush:groovy">package com.mrhaki.spock
+
+@groovy.transform.Canonical
+class Person {
+    String name
+}    
+</pre><p>Now we can write a Spock specification to test <code>ClassUnderTest</code>. We will now use the default matching of arguments of a mock provided by Spock.</p><pre class="brush:groovy">package com.mrhaki.spock
+
+import spock.lang.Specification
+
+class SampleSpecification extends Specification {
+
+    final ClassUnderTest classUnderTest = new ClassUnderTest()
+
+    def "check sayHello is invoked with people in greeting method"() {
+        given:
+        final Greeting greeting = Mock()
+        classUnderTest.greeting = greeting
+
+        and:
+        final List&lt;Person&gt; people = ['mrhakis', 'hubert'].collect { new Person(name: it) }
+
+        when:
+        final String greetingResult = classUnderTest.greeting(people)
+
+        then:
+        1 * greeting.sayHello([new Person(name: 'mrhaki'), new Person(name: 'hubert')])
+    }
+
+}
+</pre><p>When we execute the specification we get a failure with the message that there are too few invocations:</p><pre class="brush:plain;">...
+Too few invocations for:
+
+1 * greeting.sayHello([new Person(name: 'mrhaki'), new Person(name: 'hubert')])   (0 invocations)
+
+Unmatched invocations (ordered by similarity):
+
+1 * greeting.sayHello([com.jdriven.spock.Person(mrhakis), com.jdriven.spock.Person(hubert)])
+...
+</pre><p>To capture the arguments we have to use a different syntax for the method invocation on the mock. This time we define the method can be invoked with any number of arguments (<code>(*_)</code>) and then use a closure to capture the arguments. The arguments are passed to the closure as a list. We can then get the argument we want and write an assert statement.</p><pre class="brush:groovy">package com.mrhaki.spock
+
+import spock.lang.Specification
+
+class SampleSpecification extends Specification {
+
+    final ClassUnderTest classUnderTest = new ClassUnderTest()
+
+    def "check sayHello is invoked with people in greeting method"() {
+        given:
+        final Greeting greeting = Mock()
+        classUnderTest.greeting = greeting
+
+        and:
+        final List&lt;Person&gt; people = ['mrhakis', 'hubert'].collect { new Person(name: it) }
+
+        when:
+        final String greetingResult = classUnderTest.greeting(people)
+
+        then:
+        1 * greeting.sayHello(*_) &gt;&gt; { arguments ->
+            final List&lt;Person&gt; argumentPeople = arguments[0]
+            assert argumentPeople == [new Person(name: 'mrhaki'), new Person(name: 'hubert')]
+        }
+    }
+
+}
+</pre><p>We run the specification again and it will fail again (of course), but this time we get an assertion message:</p><pre class="brush:plain;">...
+Condition not satisfied:
+
+argumentPeople == [new Person(name: 'mrhaki'), new Person(name: 'hubert')]
+|              |   |                           |
+|              |   |                           com.jdriven.spock.Person(hubert)
+|              |   com.jdriven.spock.Person(mrhaki)
+|              false
+[com.jdriven.spock.Person(mrhakis), com.jdriven.spock.Person(hubert)]
+
+    at com.jdriven.spock.SampleSpecification.check sayHello is invoked with people in greeting method_closure2(SampleSpecification.groovy:25)
+...
+</pre><p>Code written with Spock 0.7-groovy-2.0</p
+</div>
+
+<script language="javascript"> 
+SyntaxHighlighter.config.bloggerMode = true;
+SyntaxHighlighter.config.clipboardSwf = 'scripts/clipboard.swf';
+SyntaxHighlighter.defaults['first-line'] = 0;
+SyntaxHighlighter.defaults['auto-links'] = false;
+SyntaxHighlighter.all();
+dp.SyntaxHighlighter.HighlightAll('code');
+</script>
+
+</body>
+</html>

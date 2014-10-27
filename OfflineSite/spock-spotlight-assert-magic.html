@@ -1,0 +1,152 @@
+<html>
+<head>
+
+<title>Spocklight: Assert Magic</title>
+
+<script language="javascript" src="scripts/shCore.js"></script> 
+<script language="javascript" src="scripts/shLegacy.js"></script> 
+<script language="javascript" src="scripts/shBrushJava.js"></script> 
+<script language="javascript" src="scripts/shBrushXml.js"></script> 
+<script language="javascript" src="scripts/shBrushJScript.js"></script> 
+<script language="javascript" src="scripts/shBrushGroovy.js"></script> 
+<script language="javascript" src="scripts/shBrushPlain.js"></script> 
+<script language="javascript" src="scripts/shBrushBash.js"></script> 
+ 
+<link href="styles/reset.css" rel="stylesheet" type="text/css" />
+<link href="styles/shCore.css" rel="stylesheet" type="text/css" />
+<link type="text/css" rel="stylesheet" href="styles/shThemeRDark.css"/>
+<link href="styles/blog.css" rel="stylesheet" type="text/css" />
+
+</head>
+<body>
+
+<a href="index.html">Back to index</a>
+
+<h3 class="post-title">Spocklight: Assert Magic</h3>
+
+<div class="post">
+<p>One of the many great features of Spock is the way assertion failures are shown. The power assert from Groovy is based on Spock's assertion feature, but Spock takes it to a next level. Let's create a simple specification for a course service, which is able to create new courses:</p><pre class="brush:groovy">// File: CourseServiceSpec.groovy
+package com.mrhaki.blog
+
+@Grab('org.spockframework:spock-core:0.4-groovy-1.7')
+import spock.lang.Specification
+
+class CourseServiceSpec extends Specification {
+
+    def "Create new course with teacher and description"() {
+        setup:
+        def courseService = new CourseService()
+
+        when:
+        def course = courseService.create('mrhaki', 'Groovy Goodness')
+
+        then:
+        'Mrhaki' == course.teacher.name
+        'Groovy Goodness' == course.description
+        !course.students
+    }
+
+}
+
+class CourseService {
+    Course create(String teacherName, String description) {
+        new Course(teacher: new Person(name: teacherName), description: description)
+    }
+}
+
+class Course {
+    Person teacher
+    String description
+    List&lt;Person&gt; students
+}
+
+class Person {
+    String name
+}
+</pre><p>At lines 16, 17, 18 we define the assertions for our specification. First of all we notice we don't add the keyword <code>assert</code> for each assertion. Because we are in the <code>then</code> block we can omit the <code>assert</code> keyword. Notice at line 18 we can test for null values by using the Groovy truth. We also notice we only have to write a simple assertion. Spock doesn't need a bunch of <code>assertEquals()</code> methods like JUnit to test the result.</p><p>Now it is time to run our specification as JUnit test and see the result:</p><pre class="brush:plain">$ groovy CourseServiceSpec.groovy
+JUnit 4 Runner, Tests: 1, Failures: 1, Time: 232
+Test Failure: Create new course with teacher and description(com.mrhaki.blog.CourseServiceSpec)
+Condition not satisfied:
+
+'Mrhaki' == course.teacher.name
+         |  |      |       |
+         |  |      |       mrhaki
+         |  |      com.mrhaki.blog.Person@34b6a6d6
+         |  com.mrhaki.blog.Course@438346a3
+         false
+         1 difference (83% similarity)
+         (M)rhaki
+         (m)rhaki
+
+    at com.mrhaki.blog.CourseServiceSpec.Create new course with teacher and description(CourseServiceSpec.groovy:16)
+</pre><p>Wow that is a very useful message for what is going wrong! We can see our condition <code>'Mrhaki' == course.teacher.name</code> is not satisfied, but we even get to see which part of the String value is not correct. In this case the first character should be lowercase instead of uppercase, but the message clearly shows the rest of the String value is correct. As a matter of fact we even know 83% of the String values is similar.</p><p>Another nice feature of Spock is that only the line which is important is shown in the abbreviated stacktrace. So we don't have to scroll through a big stacktrace with framework classes to find out where in our class the exception occurs. We immediately see that at line 16 in our specification the condition is not satisfied.</p><p>In our sample we have three assertions to be checked in the <code>then</code>. If we get a lot of assertions in the <code>then</code> block we can refactor our specification and put the assertions in a new method. This method must have <cod>void</code> return type and we must add the <code>assert</code> keyword again. After these changes the assertions work just like when we put them in the <code>then</code> block:</p><pre class="brush:groovy">package com.mrhaki.blog
+
+@Grab('org.spockframework:spock-core:0.4-groovy-1.7')
+import spock.lang.Specification
+
+class CourseServiceSpec extends Specification {
+
+    def "Create new course with teacher and description"() {
+        setup:
+        def courseService = new CourseService()
+
+        when:
+        def course = courseService.create('mrhaki', 'Groovy Goodness')
+
+        then:
+        assertCourse course
+    }
+
+    private void assertCourse(course) {
+        assert 'mrhaki' == course.teacher.name
+        assert 'Grails Goodness' == course.description
+        assert !course.students
+    }
+
+}
+
+class CourseService {
+    Course create(String teacherName, String description) {
+        new Course(teacher: new Person(name: teacherName), description: description)
+    }
+}
+
+class Course {
+    Person teacher
+    String description
+    List&lt;Person&gt; students
+}
+
+class Person {
+    String name
+}
+</pre><p>When can run our specification and get the following output:</p><pre class="brush:plain">$ groovy CourseServiceSpec.groovy
+JUnit 4 Runner, Tests: 1, Failures: 1, Time: 228
+Test Failure: Create new course with teacher and description(com.mrhaki.blog.CourseServiceSpec)
+Condition not satisfied:
+
+'Grails Goodness' == course.description
+                  |  |      |
+                  |  |      Groovy Goodness
+                  |  com.mrhaki.blog.Course@3435ec9
+                  false
+                  4 differences (73% similarity)
+                  Gr(ails) Goodness
+                  Gr(oovy) Goodness
+
+    at com.mrhaki.blog.CourseServiceSpec.assertCourse(CourseServiceSpec.groovy:21)
+    at com.mrhaki.blog.CourseServiceSpec.Create new course with teacher and description(CourseServiceSpec.groovy:16)
+</pre><p>Spock provides very useful assertion messages when the condition is not satisfied. We see immediately what wasn't correct, because of the message and the fact the stacktrace only shows the line where the code is wrong.</p
+</div>
+
+<script language="javascript"> 
+SyntaxHighlighter.config.bloggerMode = true;
+SyntaxHighlighter.config.clipboardSwf = 'scripts/clipboard.swf';
+SyntaxHighlighter.defaults['first-line'] = 0;
+SyntaxHighlighter.defaults['auto-links'] = false;
+SyntaxHighlighter.all();
+dp.SyntaxHighlighter.HighlightAll('code');
+</script>
+
+</body>
+</html>

@@ -1,0 +1,84 @@
+<html>
+<head>
+
+<title>Spocklight: Indicate Class Under Test with Subject Annotation</title>
+
+<script language="javascript" src="scripts/shCore.js"></script> 
+<script language="javascript" src="scripts/shLegacy.js"></script> 
+<script language="javascript" src="scripts/shBrushJava.js"></script> 
+<script language="javascript" src="scripts/shBrushXml.js"></script> 
+<script language="javascript" src="scripts/shBrushJScript.js"></script> 
+<script language="javascript" src="scripts/shBrushGroovy.js"></script> 
+<script language="javascript" src="scripts/shBrushPlain.js"></script> 
+<script language="javascript" src="scripts/shBrushBash.js"></script> 
+ 
+<link href="styles/reset.css" rel="stylesheet" type="text/css" />
+<link href="styles/shCore.css" rel="stylesheet" type="text/css" />
+<link type="text/css" rel="stylesheet" href="styles/shThemeRDark.css"/>
+<link href="styles/blog.css" rel="stylesheet" type="text/css" />
+
+</head>
+<body>
+
+<a href="index.html">Back to index</a>
+
+<h3 class="post-title">Spocklight: Indicate Class Under Test with Subject Annotation</h3>
+
+<div class="post">
+<p>If we write a specification for a specific class we can indicate that class with the <code>@Subject</code> annotation. This annotation is only for informational purposes, but can help in making sure we understand which class we are writing the specifications for. The annotation can either be used at class level or field level. If we use the annotation at class level we must specify the class or classes under test as argument for the annotation. If we apply the annotation to a field, the type of the field is used as the class under test. The field can be part of the class definition, but we can also apply the <code>@Subject</code> annotation to fields inside a feature method.</p><p>In the following example Spock specification we write a specification for the class <code>Greet</code>. The definition of the <code>Greet</code> class is also in the code listing. We use the <code>@Subject</code> annotation on the field <code>greet</code> to indicate this instance of the <code>Greet</code> class is the class we are testing here. The code also works with the <code>@Subject</code> annotation, but it adds more clarity to the specification.</p><pre class="brush:groovy">package com.mrhaki.spock
+
+@Grab('org.spockframework:spock-core:0.7-groovy-2.0')
+import spock.lang.*
+
+// The @Subject annotation can also be applied at class level.
+// We must specify the class or classes as arguments:
+// @Subject([Greet])
+class GreetSpec extends Specification {
+
+    // The greet variable of type Greet is the 
+    // class we are testing in this specification.
+    // We indicate this with the @Subject annotation.
+    @Subject 
+    private Greet greet = new Greet(['Hi', 'Hello'])
+
+    // Simple specification to test the greeting method.
+    def "greeting should return a random salutation followed by name"() {
+        when:
+        final String greeting = greet.greeting('mrhaki')
+
+        then:
+        greeting == 'Hi, mrhaki' || greeting == 'Hello, mrhaki'
+    }
+
+}
+
+/**
+ * Class which is tested in the above specification.
+ */
+@groovy.transform.Immutable
+class Greet {
+
+    final List&lt;String&gt; salutations
+
+    String greeting(final String name) {
+        final int numberOfSalutations = salutations.size()
+        final int selectedIndex = new Random().nextInt(numberOfSalutations)
+        final String salutation = salutations.get(selectedIndex)
+
+        "${salutation}, ${name}"
+    }
+
+}</pre><p>Code written with Spock 0.7-groovy-2.0 and Groovy 2.3.7.</p
+</div>
+
+<script language="javascript"> 
+SyntaxHighlighter.config.bloggerMode = true;
+SyntaxHighlighter.config.clipboardSwf = 'scripts/clipboard.swf';
+SyntaxHighlighter.defaults['first-line'] = 0;
+SyntaxHighlighter.defaults['auto-links'] = false;
+SyntaxHighlighter.all();
+dp.SyntaxHighlighter.HighlightAll('code');
+</script>
+
+</body>
+</html>

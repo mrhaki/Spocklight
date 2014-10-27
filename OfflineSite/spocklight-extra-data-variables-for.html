@@ -1,0 +1,88 @@
+<html>
+<head>
+
+<title>Spocklight: Extra Data Variables for Unroll Description</title>
+
+<script language="javascript" src="scripts/shCore.js"></script> 
+<script language="javascript" src="scripts/shLegacy.js"></script> 
+<script language="javascript" src="scripts/shBrushJava.js"></script> 
+<script language="javascript" src="scripts/shBrushXml.js"></script> 
+<script language="javascript" src="scripts/shBrushJScript.js"></script> 
+<script language="javascript" src="scripts/shBrushGroovy.js"></script> 
+<script language="javascript" src="scripts/shBrushPlain.js"></script> 
+<script language="javascript" src="scripts/shBrushBash.js"></script> 
+ 
+<link href="styles/reset.css" rel="stylesheet" type="text/css" />
+<link href="styles/shCore.css" rel="stylesheet" type="text/css" />
+<link type="text/css" rel="stylesheet" href="styles/shThemeRDark.css"/>
+<link href="styles/blog.css" rel="stylesheet" type="text/css" />
+
+</head>
+<body>
+
+<a href="index.html">Back to index</a>
+
+<h3 class="post-title">Spocklight: Extra Data Variables for Unroll Description</h3>
+
+<div class="post">
+<p>Spock's unroll feature is very powerful. The provider data variables can be used in the method description of our specification features with placeholders. For each iteration the placeholders are replaced with correct values. This way we get a nice output where we immediately can see the values that were used to run the code. Placeholders are denoted by a hash sign (<code>#</code>) followed by the variable name. We can even invoke no-argument methods on the variable values or access properties. For example if we have a String value we could get the upper case value with <code>#variableName.toUpperCase()</code>. If we want to use more complex expressions we must introduce a new data variable in the <code>where</code> block. The value of the variable will be determined for each test invocation and we can use the result as a value in the method description.</p><pre class="brush:groovy">package com.mrhaki.spock
+
+import spock.lang.*
+
+class SampleSpec extends Specification {
+
+    @Unroll
+    def "check if '#value' is lower case"() {
+        expect:
+        value.every { (it as char).isLowerCase() } == result
+
+        where:
+        value || result
+        'A'   || false
+        'Ab'  || false
+        'aB'  || false
+        'a'   || true
+        'ab'  || true
+    }
+
+}
+</pre><p>If we look at the output of the tests we see the method names are not really representing the code we test. For example we can not see if the value was lower case or not.</p><div class="separator" style="clear: both; text-align: center;"><a href="http://3.bp.blogspot.com/-BAI32k9Cpe0/U57roY5_0nI/AAAAAAAAIrs/x1uIHvno3rk/s1600/spocklight-m1.png" imageanchor="1" style="margin-left: 1em; margin-right: 1em;"><img border="0" src="http://3.bp.blogspot.com/-BAI32k9Cpe0/U57roY5_0nI/AAAAAAAAIrs/x1uIHvno3rk/s1600/spocklight-m1.png" /></a></div><p style="clear:both">We rewrite the specification and add a new data variable <code>unrollDescription</code> in the <code>where</code> block. We then refer to this variable in our method name description.</p><pre class="brush:groovy">package com.mrhaki.spock
+
+import spock.lang.*
+
+class SampleSpec extends Specification {
+
+    @Unroll
+    // Alternatively syntax as 
+    // unroll annotation argument:
+    // @Unroll("'#value' is #unrollDescription")
+    def "'#value' is #unrollDescription"() {
+        expect:
+        value.every { (it as char).isLowerCase() } == result
+
+        where:
+        value || result
+        'A'   || false
+        'Ab'  || false
+        'aB'  || false
+        'a'   || true
+        'ab'  || true
+
+        unrollDescription = result ? 'lower case' : 'not lower case'
+    }
+
+}
+</pre><p>When we look at the output we now have more descriptive method names:</p><div class="separator" style="clear: both; text-align: center;"><a href="http://1.bp.blogspot.com/-gFl5kmIBfNM/U57rugCSvHI/AAAAAAAAIr0/nQdSo1glufM/s1600/spocklight-m2.png" imageanchor="1" style="margin-left: 1em; margin-right: 1em;"><img border="0" src="http://1.bp.blogspot.com/-gFl5kmIBfNM/U57rugCSvHI/AAAAAAAAIr0/nQdSo1glufM/s1600/spocklight-m2.png" /></a></div><p style="clear:both">This post is inspired by the great <a href="http://freeside.co/idiomatic-spock/">Idiomatic Spock</a> talk by <a href="http://www.twitter.com/rfletcherEW">Rob Fletcher</a> at Gr8Conf 2014 Europe.</p><p>Code written with Spock 0.7 for Groovy 2.</p
+</div>
+
+<script language="javascript"> 
+SyntaxHighlighter.config.bloggerMode = true;
+SyntaxHighlighter.config.clipboardSwf = 'scripts/clipboard.swf';
+SyntaxHighlighter.defaults['first-line'] = 0;
+SyntaxHighlighter.defaults['auto-links'] = false;
+SyntaxHighlighter.all();
+dp.SyntaxHighlighter.HighlightAll('code');
+</script>
+
+</body>
+</html>

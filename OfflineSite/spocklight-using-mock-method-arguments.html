@@ -1,0 +1,100 @@
+<html>
+<head>
+
+<title>Spocklight: Using Mock Method Arguments in Response</title>
+
+<script language="javascript" src="scripts/shCore.js"></script> 
+<script language="javascript" src="scripts/shLegacy.js"></script> 
+<script language="javascript" src="scripts/shBrushJava.js"></script> 
+<script language="javascript" src="scripts/shBrushXml.js"></script> 
+<script language="javascript" src="scripts/shBrushJScript.js"></script> 
+<script language="javascript" src="scripts/shBrushGroovy.js"></script> 
+<script language="javascript" src="scripts/shBrushPlain.js"></script> 
+<script language="javascript" src="scripts/shBrushBash.js"></script> 
+ 
+<link href="styles/reset.css" rel="stylesheet" type="text/css" />
+<link href="styles/shCore.css" rel="stylesheet" type="text/css" />
+<link type="text/css" rel="stylesheet" href="styles/shThemeRDark.css"/>
+<link href="styles/blog.css" rel="stylesheet" type="text/css" />
+
+</head>
+<body>
+
+<a href="index.html">Back to index</a>
+
+<h3 class="post-title">Spocklight: Using Mock Method Arguments in Response</h3>
+
+<div class="post">
+<p>When we mock or stub methods we can use the method arguments passed to the method in the response for the mocked or stubbed method. We must write a closure after the rightShift operator (<code>&gt;&gt;</code>) and the closure arguments will resemble the arguments of the mocked or stubbed method. Alternatively we can use a single non-typed argument in the closure and this will contains the method argument list.</p><p>Let's create a specification where we use this feature. In the following sample we use a mock for the <code>AgeService</code> used in the class under test. The method <code>allowedMaxTime()</code> is invoked by the class under test and basically should return the maximum hour of the day a show can be broadcasted. In our specification we use the name of the show to return different values during the test.</p><pre class="brush:groovy;highlight:[19,20,21,22,23,24,25]">package com.mrhaki.spock
+
+@Grab('org.spockframework:spock-core:0.7-groovy-2.0')
+import spock.lang.*
+
+class SampleSpec extends Specification {
+
+    final ClassUnderTest classUnderTest = new ClassUnderTest()
+
+    @Unroll
+    def "show #name with start time 21h is #expected to show"() {
+        setup:
+        final AgeService ageService = Mock()
+        classUnderTest.ageService = ageService
+
+        when:
+        final boolean allowed = classUnderTest.listing(new Show(name: name, startTime: 21)) 
+
+        then:
+        1 * ageService.allowedMaxTime(_ as Show) >> { Show show ->
+            show.name.toLowerCase().contains('kids') ? 10 : 23
+        }
+        // Alternative syntax with a non-typed closure argument:
+        //1 * ageService.allowedMaxTime(_ as Show) >> { arguments ->
+        //    arguments[0].name.toLowerCase().contains('kids') ? 10 : 23
+        //}
+
+        allowed == expected
+
+        where:
+        name            || expected
+        'Kids rules'    || false
+        'Sports united' || true
+    }
+
+}
+
+/* Supporting classes and interface */
+
+class ClassUnderTest {
+
+    AgeService ageService
+
+    boolean listing(final Show show) {
+        final int hour = ageService.allowedMaxTime(show)
+        show.startTime <= hour
+    }
+}
+
+interface AgeService {
+    int allowedMaxTime(Show show)
+}
+
+@groovy.transform.Canonical
+class Show {
+    String name
+    int startTime
+}
+</pre>
+<p>Code written with Spock 0.7-groovy-2.0.</p
+</div>
+
+<script language="javascript"> 
+SyntaxHighlighter.config.bloggerMode = true;
+SyntaxHighlighter.config.clipboardSwf = 'scripts/clipboard.swf';
+SyntaxHighlighter.defaults['first-line'] = 0;
+SyntaxHighlighter.defaults['auto-links'] = false;
+SyntaxHighlighter.all();
+dp.SyntaxHighlighter.HighlightAll('code');
+</script>
+
+</body>
+</html>
