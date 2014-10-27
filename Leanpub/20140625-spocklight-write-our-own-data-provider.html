@@ -1,0 +1,89 @@
+<html>
+<head>
+</head>
+<body>
+
+<h3 class="post-title">Write Our Own Data Provider</h3>
+
+<div class="post">
+<p>We can use data pipes to write data driven tests in Spock. A data pipe (<code>&lt;&lt;</code>) is fed by a data provider. We can use <code>Collection</code> objects as data provider, but also <code>String</code> objects and any class that implements the <code>Iterable</code> interface. We can write our own data provider class if we implement the <code>Iterable</code> interface.</p><p>In the following sample code we want to test the <code>female</code> property of the <code>User</code> class. We have the class <code>MultilineProvider</code> that implements the <code>Iterable</code> interface. The provider class accepts a multiline <code>String</code> value and returns the tokenized result of each line in each iteration.</p><pre class="brush:groovy">package com.mrhaki.spock
+
+@Grab('org.spockframework:spock-core:0.7-groovy-2.0')
+import spock.lang.*
+
+class ProviderSampleSpec extends Specification {
+
+    @Unroll("Gender #gender for #name is #description")
+    def "check if user is female or male based on gender value"() {
+        given:
+        def userData = '''\
+            1;mrhaki;M;false
+            2;Britt;F;true'''
+
+        expect:
+        new User(name: name, gender: gender).female == Boolean.valueOf(expected)
+
+        where:
+        [_, name, gender, expected] &lt;&lt; new MultilineProvider(source: userData)
+
+        // Extra data variable to be used in
+        // @Unroll description.
+        description = expected ? 'female' : 'not female'
+    }
+
+}
+
+/**
+ * Class under test. 
+ */
+class User {
+    String name, gender
+
+    Boolean isFemale() {
+        gender == 'F'
+    }
+}
+
+/**
+ * Class implements Iterable interface so 
+ * it can be used as data provider.
+ */
+class MultilineProvider implements Iterable {
+    def source
+    def lines
+    def separator = ';'
+
+    private int counter
+
+    /**
+     * Set multiline String as source 
+     * and transform to a List of String
+     * values and assign to the lines
+     * property.
+     */
+    void setSource(source) {
+        this.source = source.stripIndent()
+        lines = this.source.readLines()
+    }
+
+    @Override
+    Iterator iterator() {
+        [
+            hasNext: { 
+                counter &lt; lines.size() 
+            },
+            next: { 
+                lines[counter++].tokenize(separator)
+            }
+        ] as Iterator
+    }
+}
+</pre><p>Code written with Spock 0.7-groovy-2 and Groovy 2.3.3.</p
+</div>
+
+<p>
+    <a href="http://mrhaki.blogspot.com/2014/06/spocklight-write-our-own-data-provider.html">Original blog post</a> written on June 25, 2014.
+</p>
+
+</body>
+</html>

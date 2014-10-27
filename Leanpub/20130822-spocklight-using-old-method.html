@@ -1,0 +1,106 @@
+<html>
+<head>
+</head>
+<body>
+
+<h3 class="post-title">Using the Old Method</h3>
+
+<div class="post">
+<p>Spock has some great features to write specifications or tests that are short and compact. One of them is the <code>old()</code> method. The <code>old()</code> method can only be used in a <code>then:</code> block. With this method we get the value a statement had before the <code>when:</code> block is executed.</p><p>Let's see this with a simple example. In the following specification we create a <code>StringBuilder</code> with an initial value. In the <code>then:</code> block we use the same initial value for the assertion:</p><pre class="brush:groovy">package com.mrhaki.spock 
+
+class SampleSpec extends spock.lang.Specification {
+
+    def "after addition of a new value the content is the initial value with the appended value"() {
+        given:
+        final StringBuilder builder = new StringBuilder('Spock ')
+
+        when:
+        builder &lt;&lt; appendValue
+
+        then:
+        builder.toString() == 'Spock ' + appendValue
+
+        where:
+        appendValue &lt;&lt; ['rocks!', 'is fun.', 'amazes.']
+    }
+
+}
+</pre><p>If we want to change the initial value when we create the <code>StringBuilder</code> we must also change the assertion. We can refactor the feature method and show our intention of the specification better. We add the variable <code>oldToString</code> right after we have created the <code>StringBuilder</code>. We use this in the assertion.</p><pre class="brush:groovy">package com.mrhaki.spock 
+
+class SampleSpec extends spock.lang.Specification {
+
+    def "after addition of a new value the content is the initial value with the appended value"() {
+        given:
+        final StringBuilder builder = new StringBuilder('Spock ')
+        final String oldToString = builder.toString()
+
+        when:
+        builder &lt;&lt; appendValue
+
+        then:
+        builder.toString() == oldToString + appendValue
+
+        where:
+        appendValue &lt;&lt; ['rocks!', 'is fun.', 'amazes.']
+    }
+
+}
+</pre><p>But with Spock we can do one better. Instead of creating an extra variable we can use the <code>old()</code> method. In the assertion we replace the variable reference <code>oldToString</code> with <code>old(builder.toString())</code>. This actually means we want the value for <code>builder.toString()</code> BEFORE the <code>when:</code> block is executed. The assertion also is now very clear and readable and the intentions of the specification are very clear.</p><pre class="brush:groovy">package com.mrhaki.spock 
+
+class SampleSpec extends spock.lang.Specification {
+
+    def "after addition of a new value the content is the initial value with the appended value"() {
+        given:
+        final StringBuilder builder = new StringBuilder('Spock ')
+
+        when:
+        builder &lt;&lt; appendValue
+
+        then:
+        builder.toString() == old(builder.toString()) + appendValue
+
+        where:
+        appendValue &lt;&lt; ['rocks!', 'is fun.', 'amazes.']
+    }
+
+}
+</pre><p>Let's change the specification a bit so we get some failures. Instead of adding the <code>appendValue</code> data variable unchanged to the <code>StringBuilder</code> we want to add a capitalized value.</p><pre class="brush:groovy;highlight:[12]">package com.mrhaki.spock 
+
+class SampleSpec extends spock.lang.Specification {
+
+    def "after addition of a new value the content is the initial value with the appended value"() {
+        given:
+        final StringBuilder builder = new StringBuilder('Spock ')
+
+        when:
+        builder &lt;&lt; appendValue.capitalize()
+
+        then:
+        builder.toString() == old(builder.toString()) + appendValue
+
+        where:
+        appendValue &lt;&lt; ['rocks!', 'is fun.', 'amazes.']
+    }
+
+}
+</pre><p>If we run the specification we get assertion failures. In the following output we see such a failure and notice the value for the <code>old()</code> is shown correctly:</p><pre class="brush:plain;light:true">Condition not satisfied:
+
+builder.toString() == old(builder.toString()) + appendValue
+|       |          |  |                       | |
+|       |          |  Spock                   | rocks!
+|       |          |                          Spock rocks!
+|       |          false
+|       |          1 difference (91% similarity)
+|       |          Spock (R)ocks!
+|       |          Spock (r)ocks!
+|       Spock Rocks!
+Spock Rocks!
+</pre><p>Note: If we use the <code>old()</code> method we might get an <code>InternalSpockError</code> exception when assertions fail. The error looks something like: <code>org.spockframework.util.InternalSpockError: Missing value for expression "..."</code>. Re-ordering the assertion can help solve this. For example putting the <code>old()</code> method statement last. In Spock 1.0-SNAPSHOT this error doesn't occur.</p><p>For more information we can read Rob Fletcher's <a href="http://blog.freeside.co/post/41774646403/spock-killer-features-the-old-method">blog post</a> about the <code>old()</code> method.</p><p>Code written with Spock 0.7-groovy-2.0.</p
+</div>
+
+<p>
+    <a href="http://mrhaki.blogspot.com/2013/08/spocklight-using-old-method.html">Original blog post</a> written on August 22, 2013.
+</p>
+
+</body>
+</html>

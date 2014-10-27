@@ -1,0 +1,59 @@
+<html>
+<head>
+</head>
+<body>
+
+<h3 class="post-title">Ignore Specifications Based On Conditions</h3>
+
+<div class="post">
+<p>We can use the <code>@Ignore</code> and <code>@IgnoreRest</code> annotation in our Spock specifications to not run the annotated specifications or features. With the <code>@IgnoreIf</code> annotation we can specify a condition that needs to evaluate to <code>true</code> to not run the feature or specification. The argument of the annotation is a closure. Inside the closure we can access three extra variables: <code>properties</code> (Java system properties), <code>env</code> (environment variables) and <code>javaVersion</code>.</p><p>In the following Spock specification we have a couple of features. Each feature has the <code>@IgnoreIf</code> annotation with different checks. We can use the extra variables, but we can also invoke our own methods in the closure argument for the annotation:</p><pre class="brush:groovy">package com.mrhaki.spock
+
+import spock.lang.*
+
+class SampleRequiresSpec extends Specification {
+
+    private static boolean isOsWindows() {
+        System.properties['os.name'] == 'windows'
+    }
+
+    @IgnoreIf({ Boolean.valueOf(properties['spock.ignore.longRunning']) })
+    def "run spec if Java system property 'spock.ignore.longRunning' is not set or false"() {
+        expect:
+        true
+    }
+
+    @IgnoreIf({ Boolean.valueOf(env['SPOCK_IGNORE_LONG_RUNNING']) })
+    def "run spec if environment variable 'SPOCK_IGNORE_LONG_RUNNING' is not set or false"() {
+        expect:
+        true
+    }
+
+    @IgnoreIf({ javaVersion < 1.7 })
+    def "run spec if run in Java 1.7 or higher"() {
+        expect:
+        true
+    }
+
+    @IgnoreIf({ javaVersion != 1.7 })
+    def "run spec if run in Java 1.7"() {
+        expect:
+        true
+    }
+
+    @IgnoreIf({ isOsWindows() })
+    def "run only if run on non-windows operating system"() {
+        expect:
+        true
+    }
+
+}
+</pre>
+<p>When we run our specification with Java 1.8 and do not set the Java system property <em>spock.ignore.longRunning</em> or we set the value to <code>false</code> and we do not set the environment variable <em>SPOCK_IGNORE_LONG_RUNNING</em> or give it the value <code>false</code> we can see that some features are ignored:</p><div class="separator" style="clear: both; text-align: center;"><a href="http://2.bp.blogspot.com/-C-J9Tp97RTs/U6Q6vRmRWoI/AAAAAAAAIwE/MOG1Ww1OGQY/s1600/spock1.png" imageanchor="1" style="margin-left: 1em; margin-right: 1em;"><img border="0" src="http://2.bp.blogspot.com/-C-J9Tp97RTs/U6Q6vRmRWoI/AAAAAAAAIwE/MOG1Ww1OGQY/s1600/spock1.png" /></a></div><p style="clear:both;">Now we run on Java 1.7, Windows operating system and set the Java system property <em>spock.ignore.longRunning</em> with the value <code>true</code> and the environment variable <em>SPOCK_IGNORE_LONG_RUNNING</em> with the value <code>true</code>. The resulting report shows the specifications that are ignored and those that are executed:</p><div class="separator" style="clear: both; text-align: center;"><a href="http://4.bp.blogspot.com/-nuiZ6XgOMRs/U6Q62coULhI/AAAAAAAAIwM/vRmBXTHzaPU/s1600/spock2.png" imageanchor="1" style="margin-left: 1em; margin-right: 1em;"><img border="0" src="http://4.bp.blogspot.com/-nuiZ6XgOMRs/U6Q62coULhI/AAAAAAAAIwM/vRmBXTHzaPU/s1600/spock2.png" /></a></div><p style="clear:both;">Code written with Spock 0.7-groovy-2.</p
+</div>
+
+<p>
+    <a href="http://mrhaki.blogspot.com/2014/06/spocklight-ignore-specifications-based.html">Original blog post</a> written on June 20, 2014.
+</p>
+
+</body>
+</html>

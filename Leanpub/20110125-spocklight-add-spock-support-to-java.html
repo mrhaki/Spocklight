@@ -1,0 +1,171 @@
+<html>
+<head>
+</head>
+<body>
+
+<h3 class="post-title">Add Spock Support to Java Project in STS/Eclipse</h3>
+
+<div class="post">
+<p>Suppose we get assigned to an existing Java project and we want to use <a href="http://spockframework.org">Spock</a> for writing our tests (of course!). In this post we learn the steps we need to take to achieve this. We assume the Java project is built with Maven and imported into SpringSource Tool Suite (or Eclipse). For an easier way to add Spock to STS/Eclipse using Gradle we can read <a href="http://kousenit.wordpress.com/2011/01/26/an-easier-way-to-add-spock-to-an-eclipsests-project/">this blog post written by Ken Kousen</a>.</p>
+<p>First we start with our Java project. The project for this sample is very simple. We only have one <a href="https://github.com/mrhaki/BlogSamples/raw/master/JavaProjectWithSpock/user-service/src/main/java/com/mrhaki/app/services/UserService.java">interface</a> and an <a href="https://github.com/mrhaki/BlogSamples/raw/master/JavaProjectWithSpock/user-service/src/main/java/com/mrhaki/app/services/UserServiceImpl.java">implementation class</a> for finding a username in a list of <a href="https://github.com/mrhaki/BlogSamples/raw/master/JavaProjectWithSpock/user-service/src/main/java/com/mrhaki/app/domain/User.java">users</a>. The sources for this post can be found at <a href="https://github.com/mrhaki/BlogSamples/tree/master/JavaProjectWithSpock">Github</a>. The following <code>pom.xml</code> is used:</p>
+<pre class="brush:xml">
+&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;project xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd"&gt;
+    
+    &lt;modelVersion&gt;4.0.0&lt;/modelVersion&gt;
+    
+    &lt;groupId&gt;com.mrhaki.app.services&lt;/groupId&gt;
+    &lt;artifactId&gt;user-service&lt;/artifactId&gt;
+    &lt;packaging&gt;jar&lt;/packaging&gt;
+    
+    &lt;name&gt;User Service&lt;/name&gt;
+    &lt;description&gt;Service to work with users&lt;/description&gt;
+    
+    &lt;version&gt;1.2&lt;/version&gt;
+
+&lt;/project&gt;
+</pre>
+<p>This project is imported as Maven project into SpringSource Tool Suite. Now it is time to add Spock support to our project. First we change the <code>pom.xml</code> and add the required plugins and dependencies:</p>
+<pre class="brush:xml">
+&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;project xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd"&gt;
+
+    &lt;modelVersion&gt;4.0.0&lt;/modelVersion&gt;
+
+    &lt;groupId&gt;com.mrhaki.app.services&lt;/groupId&gt;
+    &lt;artifactId&gt;user-service&lt;/artifactId&gt;
+    &lt;packaging&gt;jar&lt;/packaging&gt;
+
+    &lt;name&gt;User Service&lt;/name&gt;
+    &lt;description&gt;Service to work with users&lt;/description&gt;
+
+    &lt;version&gt;1.2&lt;/version&gt;
+
+    &lt;properties&gt;
+        &lt;spock.version&gt;0.5-groovy-1.7&lt;/spock.version&gt;
+    &lt;/properties&gt;
+
+    &lt;build&gt;
+        &lt;plugins&gt;
+            &lt;plugin&gt;
+                &lt;groupId&gt;org.codehaus.gmaven&lt;/groupId&gt;
+                &lt;artifactId&gt;gmaven-plugin&lt;/artifactId&gt;
+                &lt;version&gt;1.3&lt;/version&gt;
+                &lt;executions&gt;
+                    &lt;execution&gt;
+                        &lt;configuration&gt;
+                            &lt;providerSelection&gt;1.7&lt;/providerSelection&gt;
+                        &lt;/configuration&gt;
+                        &lt;goals&gt;
+                            &lt;goal&gt;compile&lt;/goal&gt;
+                            &lt;goal&gt;testCompile&lt;/goal&gt;
+                        &lt;/goals&gt;
+                    &lt;/execution&gt;
+                &lt;/executions&gt;
+                &lt;dependencies&gt;
+                    &lt;dependency&gt;
+                        &lt;groupId&gt;org.codehaus.gmaven.runtime&lt;/groupId&gt;
+                        &lt;artifactId&gt;gmaven-runtime-1.7&lt;/artifactId&gt;
+                        &lt;version&gt;1.3&lt;/version&gt;
+                        &lt;exclusions&gt;
+                            &lt;exclusion&gt;
+                                &lt;groupId&gt;org.codehaus.groovy&lt;/groupId&gt;
+                                &lt;artifactId&gt;groovy-all&lt;/artifactId&gt;
+                            &lt;/exclusion&gt;
+                        &lt;/exclusions&gt;
+                    &lt;/dependency&gt;
+                    &lt;dependency&gt;
+                        &lt;groupId&gt;org.codehaus.groovy&lt;/groupId&gt;
+                        &lt;artifactId&gt;groovy-all&lt;/artifactId&gt;
+                        &lt;version&gt;1.7.5&lt;/version&gt;
+                    &lt;/dependency&gt;
+                &lt;/dependencies&gt;
+            &lt;/plugin&gt;
+            &lt;plugin&gt;
+                &lt;groupId&gt;org.spockframework&lt;/groupId&gt;
+                &lt;artifactId&gt;spock-maven&lt;/artifactId&gt;
+                &lt;version&gt;${spock.version}&lt;/version&gt;
+                &lt;executions&gt;
+                    &lt;execution&gt;
+                        &lt;goals&gt;
+                            &lt;goal&gt;find-specs&lt;/goal&gt;
+                        &lt;/goals&gt;
+                    &lt;/execution&gt;
+                &lt;/executions&gt;
+            &lt;/plugin&gt;
+        &lt;/plugins&gt;
+    &lt;/build&gt;
+
+    &lt;dependencies&gt;
+        &lt;dependency&gt;
+            &lt;groupId&gt;org.spockframework&lt;/groupId&gt;
+            &lt;artifactId&gt;spock-core&lt;/artifactId&gt;
+            &lt;version&gt;${spock.version}&lt;/version&gt;
+            &lt;scope&gt;test&lt;/scope&gt;
+        &lt;/dependency&gt;
+    &lt;/dependencies&gt;
+
+&lt;/project&gt;
+</pre>
+<p>Notice we must add the gmaven-plugin and spock-maven plugin to the <code>plugins</code> section. We must also add the spock-core dependency to our project. This is all we need to do to be able to run Spock specifications with Maven. But we need to do some extra steps to be able to run our Spock specifications from SpringSource Tool Suite.</p>
+<p>First we add the directory <code>src/test/groovy</code> (which is used to save the Spock specifications in) to our project. Then we assign this new directory as source directory to the project. We open the properties of our project and select <em>Java Build Path</em>:</p>
+<div class="separator" style="clear: both; text-align: center;">
+<a href="http://4.bp.blogspot.com/_-vJw6r2W-bw/TT6F6rnh6HI/AAAAAAAAEYs/wjAd7jgLecQ/s1600/buildpath.png" imageanchor="1" style="margin-left:1em; margin-right:1em"><img border="0" height="251" width="320" src="http://4.bp.blogspot.com/_-vJw6r2W-bw/TT6F6rnh6HI/AAAAAAAAEYs/wjAd7jgLecQ/s320/buildpath.png" /></a></div>
+<p>Next we click on the <em>Add Folder...</em> button and select the <em>Create New Folder...</em> button. We create the folder <code>src/test/groovy</code>:</p>
+<div class="separator" style="clear: both; text-align: center;">
+<a href="http://1.bp.blogspot.com/_-vJw6r2W-bw/TT6F6qH6WlI/AAAAAAAAEY0/Rs8aEe2N89I/s1600/createfolder.png" imageanchor="1" style="margin-left:1em; margin-right:1em"><img border="0" height="213" width="320" src="http://1.bp.blogspot.com/_-vJw6r2W-bw/TT6F6qH6WlI/AAAAAAAAEY0/Rs8aEe2N89I/s320/createfolder.png" /></a></div>
+<p>We click on the <em>Finish</em> button and now we can select the newly created folder as a new source folder:</p>
+<div class="separator" style="clear: both; text-align: center;">
+<a href="http://1.bp.blogspot.com/_-vJw6r2W-bw/TT6F6zudUzI/AAAAAAAAEY8/TXTFM14877A/s1600/selectfolder.png" imageanchor="1" style="margin-left:1em; margin-right:1em"><img border="0" height="320" width="299" src="http://1.bp.blogspot.com/_-vJw6r2W-bw/TT6F6zudUzI/AAAAAAAAEY8/TXTFM14877A/s320/selectfolder.png" /></a></div>
+<p>Now comes an important step, because we must change the <em>Output folder</em> of our newly created source folder. We select it and press the <em>Edit...</em> button. In the dialog window we select the radio button <em>Specific output folder</em> and fill in <code>target/test-classes</code>. If we don't change the output folder then STS cannot determine changes in the sources if we use the <em>Run As | JUnit Test</em> action.</p>
+<div class="separator" style="clear: both; text-align: center;">
+<a href="http://3.bp.blogspot.com/_-vJw6r2W-bw/TT6F65MffsI/AAAAAAAAEZE/leSamCcRUho/s1600/outputfolder.png" imageanchor="1" style="margin-left:1em; margin-right:1em"><img border="0" height="136" width="320" src="http://3.bp.blogspot.com/_-vJw6r2W-bw/TT6F65MffsI/AAAAAAAAEZE/leSamCcRUho/s320/outputfolder.png" /></a></div>
+<p>Now we have added a new source folder to our project and assigned a correct output folder for the compiled class files:</p>
+<div class="separator" style="clear: both; text-align: center;">
+<a href="http://2.bp.blogspot.com/_-vJw6r2W-bw/TT6F7EZFm-I/AAAAAAAAEZM/7QYO7rVvJdc/s1600/buildpathready.png" imageanchor="1" style="margin-left:1em; margin-right:1em"><img border="0" height="253" width="320" src="http://2.bp.blogspot.com/_-vJw6r2W-bw/TT6F7EZFm-I/AAAAAAAAEZM/7QYO7rVvJdc/s320/buildpathready.png" /></a></div>
+<p>Next we must make our Java project a Groovy project in STS. We right-click on our project and select <em>Configure | Convert to Groovy Project</em>:</p>
+<div class="separator" style="clear: both; text-align: center;">
+<a href="http://1.bp.blogspot.com/_-vJw6r2W-bw/TT6GPNT4nwI/AAAAAAAAEZU/R_TiudpnjKk/s1600/makegroovyproject.png" imageanchor="1" style="margin-left:1em; margin-right:1em"><img border="0" height="179" width="320" src="http://1.bp.blogspot.com/_-vJw6r2W-bw/TT6GPNT4nwI/AAAAAAAAEZU/R_TiudpnjKk/s320/makegroovyproject.png" /></a></div>
+<p>Okay, STS is now ready for our Spock specifications! We write the following specification and save it as <code>src/test/groovy/com/mrhaki/app/services/UserServiceImplSpec.groovy</code>:</p>
+<pre class="brush:groovy">
+package com.mrhaki.app.services
+
+import spock.lang.Specification
+
+class UserServiceImplSpec extends Specification {
+    
+    UserServiceImpl userService = new UserServiceImpl();
+    
+    def "Search for existing name must return correct username"() {
+        expect:
+            userService.findUsername("Hubert A. Klein Ikkink") == 'mrhaki'
+    }
+    
+    def "Search for non-existing name must return an empty String"() {
+        expect:
+            userService.findUsername('non-existing name') == ''
+    }
+    
+    def "Search with null value for name must return an empty String"() {
+        expect:
+            userService.findUsername(null) == ''
+    }
+    
+}
+</pre>
+<p>We can run our Spock specification with the <em>Run</em> or <em>Run As | JUnit Test</em> commands. STS recognizes the Spock specification as JUnit test and uses the testrunner to run our specification:</p>
+<div class="separator" style="clear: both; text-align: center;">
+<a href="http://4.bp.blogspot.com/_-vJw6r2W-bw/TT6GQF5n5bI/AAAAAAAAEZc/0mx671taD0g/s1600/junitrunner.png" imageanchor="1" style="margin-left:1em; margin-right:1em"><img border="0" height="126" width="320" src="http://4.bp.blogspot.com/_-vJw6r2W-bw/TT6GQF5n5bI/AAAAAAAAEZc/0mx671taD0g/s320/junitrunner.png" /></a></div>
+<p>If the <em>Run As</em> command doesn't recognize the Spock specification as JUnit test then closing and reopening the source file may help.</p
+</div>
+
+<p>
+    <a href="http://mrhaki.blogspot.com/2011/01/spocklight-add-spock-support-to-java.html">Original blog post</a> written on January 25, 2011.
+</p>
+
+</body>
+</html>
