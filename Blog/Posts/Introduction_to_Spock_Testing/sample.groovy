@@ -1,0 +1,10 @@
+&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;testsuite errors="0" failures="0" hostname="ci-test" name="com.mrhaki.blog.UserServiceSpecification" tests="4" time="0.707" timestamp="2010-06-29T18:17:24"&gt;
+  &lt;properties /&gt;
+  &lt;testcase classname="com.mrhaki.blog.UserServiceSpecification" name="Expect to count 0 users for following list null" time="0.152" /&gt;
+  &lt;testcase classname="com.mrhaki.blog.UserServiceSpecification" name="Expect to count 0 users for following list []" time="0.027" /&gt;
+  &lt;testcase classname="com.mrhaki.blog.UserServiceSpecification" name="Expect to count 1 users for following list [mrhaki]" time="0.0050" /&gt;
+  &lt;testcase classname="com.mrhaki.blog.UserServiceSpecification" name="Expect to count 2 users for following list [mrhaki, hubert]" time="0.0010" /&gt;
+  &lt;system-out&gt;&lt;![CDATA[]]&gt;&lt;/system-out&gt;
+  &lt;system-err&gt;&lt;![CDATA[]]&gt;&lt;/system-err&gt;
+&lt;/testsuite&gt;
