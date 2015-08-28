@@ -1,0 +1,70 @@
+<html>
+<head>
+</head>
+<body>
+
+<h3 class="post-title">Capture and Assert System Output</h3>
+
+<div class="post">
+<p>Spock supports JUnit rules out of the box. We simply add a rule with the <code>@Rule</code> annotation to our Spock specification and the rule can be used just like in a JUnit test. The Spring Boot project contains <a href="http://docs.spring.io/spring-boot/docs/current/reference/html/boot-features-testing.html#boot-features-output-capture-test-utility">a JUnit rule <code>OutputCapture</code></a> to capture the output of <code>System.out</code> and <code>System.err</code>.</p><p>In the following example specification we apply the <code>OutputCapture</code> rule and use it in two feature methods:</p><pre class="brush:groovy">package com.mrhaki.spock
+
+@Grab('org.spockframework:spock-core:0.7-groovy-2.0')
+import spock.lang.*
+
+@Grab('org.springframework.boot:spring-boot:1.2.1.RELEASE')
+import org.springframework.boot.test.OutputCapture
+
+class CaptureOutputSpec extends Specification {
+
+    @org.junit.Rule
+    OutputCapture capture = new OutputCapture()
+
+
+    def "capture output print method"() {
+        when:
+        print 'Groovy rocks'
+
+        then:
+        capture.toString() == 'Groovy rocks'
+    }
+
+    def "banner text must contain given messagen and fixed header"() {
+        given:
+        final Banner banner = new Banner(message: 'Spock is gr8!')
+
+        when:
+        banner.print()
+
+        then:
+        final List lines = capture.toString().tokenize(System.properties['line.separator'])
+        lines.first() == '*** Message ***'
+        lines.last()  == ' Spock is gr8! '
+    }
+
+}
+
+
+/**
+ * Class under test. The print method
+ * uses println statements to display
+ * some message on the console.
+ */
+class Banner {
+
+    String message 
+
+    void print() {
+        println ' Message '.center(15, '*')
+        println message.center(15)
+    }
+
+}
+</pre><p>Written with Spock-0.7-groovy-2.0.</p
+</div>
+
+<p>
+    <a href="http://mrhaki.blogspot.com/2015/02/spocklight-capture-and-assert-system.html">Original blog post</a> written on February 06, 2015.
+</p>
+
+</body>
+</html>
