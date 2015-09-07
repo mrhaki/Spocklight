@@ -1,0 +1,74 @@
+<html>
+<head>
+</head>
+<body>
+
+<h3 class="post-title">Only Run Specs Based On Conditions</h3>
+
+<div class="post">
+<p>In a <a href="http://mrhaki.blogspot.com/2014/06/spocklight-ignore-specifications-based.html">previous blog post</a> we have seen the <code>IgnoreIf</code> extension. There is also a counterpart: the <code>Requires</code> extension. If we apply this extension to a feature method or specification class than the method or whole class is executed when the condition for the <code>@Requires</code> annotation is true. If the condition is false the method or specification is not executed. As a value for the <code>@Requires</code> annotation we must specify a closure. In the closure Spock adds some properties we can use for our conditions:</p><ul><li><code>jvm</code> can be used to check a Java version or compatibility.</li>
+<li><code>sys</code> returns the Java system properties.</li>
+<li><code>env</code> used to access environment variables.</li>
+<li><code>os</code> can be used to check for operating system names.</li>
+<li><code>javaVersion</code> has the Java version as <code>BigDecimal</code>, eg. 1.8.</li>
+</ul><p style="margin-top:2em;">In the following example we use the <code>@Requires</code> annotation with different conditions:</p><pre class="brush:groovy">package com.mrhaki.spock
+
+import spock.lang.Requires
+import spock.lang.Specification
+
+class RequiresSampleSpec extends Specification {
+
+    @Requires({ Boolean.valueOf(sys['spock.longRunning']) })
+    def "run spec if Java system property 'spock.longRunning' is true"() {
+        expect:
+        true
+    }
+
+    @Requires({ Boolean.valueOf(env['SPOCK_LONG_RUNNING']) })
+    def "run spec if environment variable 'SPOCK_LONG_RUNNING' is true"() {
+        expect:
+        true
+    }
+
+    @Requires({ javaVersion >= 1.7 })
+    def "run spec if run in Java 1.7 or higher"() {
+        expect:
+        true
+    }
+
+    @Requires({ jvm.isJava8() })
+    def "run spec if run in Java 1.8"() {
+        expect:
+        true
+    }
+
+    @Requires({ os.isWindows() })
+    def "run only if run on windows operating system"() {
+        expect:
+        true
+    }
+
+}
+</pre><p>If we have the same condition to be applied for all feature methods in a specification we can use the <code>@Requires</code> annotation at the class level:</p><pre class="brush:groovy">package com.mrhaki.spock
+
+import spock.lang.Requires
+import spock.lang.Specification
+
+@Requires({ jvm.isJava7Compatible() })
+class RequiresSpec extends Specification {
+
+    def "all feature methods run only if JVM is Java 7 compatible"() {
+        expect:
+        true
+    }
+
+}
+</pre><p>Written with Spock 1.0-groovy-2.4.</p
+</div>
+
+<p>
+    <a href="http://mrhaki.blogspot.com/2015/09/spocklight-only-run-specs-based-on.html">Original blog post</a> written on September 04, 2015.
+</p>
+
+</body>
+</html>

@@ -1,0 +1,96 @@
+<html>
+<head>
+</head>
+<body>
+
+<h3 class="post-title">Auto Cleanup Resources</h3>
+
+<div class="post">
+<p>Spcok has a lot of nice extensions we can use in our specifications. The <code>AutoCleanup</code> extension makes sure the <code>close()</code> method of an object is called each time a feature method is finished. We could invoke the <code>close()</code> method also from the <code>cleanup</code> method in our specification, but with the <code>@AutoCleanup</code> annotation it is easier and immediately shows our intention. If the object we apply the annotation to doesn't have a <code>close()</code> method to invoke we can specify the method name as the value for the annotation. Finally we can set the attribute <code>quiet</code> to <code>true</code> if we don't want to see any exceptions that are raised when the <code>close()</code> method (or custom method name, that is specified) is invoked.</p><p>In the following example code we have a specification that is testing the <code>WatchService</code> implementation. The implementation also implements the <code>Closeable</code> interface, which means we can use the <code>close()</code> method to cleanup the object properly. We also have a custom class <code>WorkDir</code> with a <code>delete()</code> method that needs to be invoked.</p><pre class="brush:groovy">package com.mrhaki.spock
+
+import spock.lang.AutoCleanup
+import spock.lang.Specification
+
+import java.nio.file.FileSystems
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.Paths
+import java.nio.file.WatchKey
+import java.nio.file.WatchService
+import java.util.concurrent.TimeUnit
+
+import static java.nio.file.StandardWatchEventKinds.ENTRY_CREATE
+
+class WatchSpec extends Specification {
+
+    // Use close() method of WatchService
+    // when feature method is done.
+    @AutoCleanup
+    private WatchService watchService
+
+    // Use delete() method of WorkDir class
+    // when feature method is done.
+    // If the quiet attribute is true, then
+    // exceptions from the delete() method are
+    // not shown, otherwise exceptions are reported.
+    @AutoCleanup(value = 'delete', quiet = true)
+    private WorkDir testPath = new WorkDir('test-dir')
+
+    def setup() {
+        // Get new watch service.
+        watchService = FileSystems.default.newWatchService()
+
+        // Register for events when a new file is created
+        // in the testPath directory.
+        testPath.path.register(watchService, ENTRY_CREATE)
+    }
+
+    def "get notification when file is created"() {
+        given:
+        final Path testFile = testPath.path.resolve('test-file')
+        testFile << 'sample'
+
+        and:
+        final WatchKey watchKey = watchService.poll(10, TimeUnit.SECONDS)
+
+        when:
+        final events = watchKey.pollEvents()
+
+        then:
+        events.size() == 1
+        events[0].kind() == ENTRY_CREATE
+
+        cleanup:
+        Files.delete(testFile)
+    }
+
+}
+
+class WorkDir {
+
+    private final Path path
+
+    WorkDir(final String dir) {
+        path = Paths.get(dir)
+        Files.createDirectories(path)
+    }
+
+    Path getPath() {
+        path
+    }
+
+    void delete() {
+        Files.deleteIfExists(path)
+    }
+
+}
+</pre>
+<p>Written with Spock 1.0-groovy-2.4.</p
+</div>
+
+<p>
+    <a href="http://mrhaki.blogspot.com/2015/09/spocklight-auto-cleanup-resources.html">Original blog post</a> written on September 01, 2015.
+</p>
+
+</body>
+</html>

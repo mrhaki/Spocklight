@@ -1,0 +1,84 @@
+<html>
+<head>
+</head>
+<body>
+
+<h3 class="post-title">Include or Exclude Specifications Based On Class or Interface</h3>
+
+<div class="post">
+<p>In a <a href="http://mrhaki.blogspot.com/2015/08/spocklight-including-or-excluding.html">previous post</a> we saw how can use the Spock configuration file to include or exclude specifications based on annotations. Instead of using annotations we can also use classes to include or exclude specifications. For example we could have a base specification class <code>DatabaseSpecification</code>. Other specifications dealing with databases extend this class. To include all these specifications we use the <code>DatabaseSpecification</code> as value for the <code>include</code> property for the test runner configuration.</p><p>Because Java (and Groovy) doesn't support real multiple inheritance this might be a problem if we already have specifications that extends a base class, but the base class cannot be used as filter for the <code>include</code> and <code>exclude</code> runner configuration. Luckily we can also use an interface as the value for the inclusion or exclusion. So we could simple create a marker interface and implement this interface for these specifications we want to include or exclude from the test execution.</p><p>We rewrite the sample from our previous post to show how we can use a marker interface. First we take a look at the interface definition:</p><pre class="brush:groovy">package com.mrhaki.spock
+
+interface RemoteSpec {
+}
+</pre><p>We used the <code>@Remote</code> annotation on a specification method, but an interface is implemented on class. Therefore we must refactor our specification into three classes. First we create a base specification class:</p><pre class="brush:groovy">package com.mrhaki.spock
+
+import spock.lang.Specification
+import spock.lang.Subject
+
+abstract class WordRepositorySpec&lt;S extends Access&gt; extends Specification {
+
+    @Subject
+    S access
+
+    def "test remote or local access"() {
+        expect:
+        access.findWords('S') == ['Spock']
+    }
+
+}
+</pre><p>Next we write two new specification classes that extends this abstract class and each uses a different implementation for the class under test.</p><pre class="brush:groovy">package com.mrhaki.spock
+
+class LocalWordRepositorySpec 
+        extends WordRepositorySpec&lt;LocalAccess&gt; {
+
+    def setup() {
+        access = new LocalAccess()
+    }
+
+}
+</pre><pre class="brush:groovy">package com.mrhaki.spock
+
+class RemoteWordRepositorySpec 
+        extends WordRepositorySpec&lt;RemoteAccess&gt;
+        // Implement RemoteSpec marker interface
+        implements RemoteSpec {
+
+    def setup() {
+        access = new RemoteAccess()
+    }
+
+}
+</pre><p>Instead of using an annotation we use the marker interface <code>RemoteSpec</code> to include it for our test execution in the following configuration:</p><pre class="brush:groovy">import com.mrhaki.spock.RemoteSpec
+
+runner {
+    println "Using RemoteSpockConfig"
+
+    // Include only test classes that
+    // implement the RemoteSpec interface.
+    include RemoteSpec
+
+    // Alternative syntax
+    // to only look for classes or interfaces.
+    // include {
+    //     baseClass RemoteSpec
+    // }
+
+    // We can also add a condition in
+    // the configuration file.
+    // In this case we check for a Java
+    // system property and if set the
+    // specs with interface RemoteSpec
+    // are not run.
+    if (System.properties['spock.ignore.Remote']) {
+        exclude RemoteSpec
+    }
+}
+</pre><p>If we run the specifications with the same Gradle build file as the previous post we see that with the default <code>test</code> task all specifications are executed:</p><div class="separator" style="clear: both; text-align: center;"><a href="http://2.bp.blogspot.com/-B7AAcnBSKLA/Vd9rUBFvM3I/AAAAAAAALNg/MWWQs0P99Zk/s1600/spock-all-tests.png" imageanchor="1" style="margin-left: 1em; margin-right: 1em;"><img border="0" src="http://2.bp.blogspot.com/-B7AAcnBSKLA/Vd9rUBFvM3I/AAAAAAAALNg/MWWQs0P99Zk/s320/spock-all-tests.png" /></a></div><p class="clear:both;">And when we execute the <code>remoteTest</code> task only the <code>RemoteWordRepositorySpec</code> is executed:</p><div class="separator" style="clear: both; text-align: center;"><a href="http://3.bp.blogspot.com/-b_Mv3AfqXWE/Vd9rYdIaDUI/AAAAAAAALNo/_zCaG5Ra3GM/s1600/spock-remote-tests.png" imageanchor="1" style="margin-left: 1em; margin-right: 1em;"><img border="0" src="http://3.bp.blogspot.com/-b_Mv3AfqXWE/Vd9rYdIaDUI/AAAAAAAALNo/_zCaG5Ra3GM/s320/spock-remote-tests.png" /></a></div><p class="clear:both;">Written with Gradle 2.6 and Spock 1.0-groovy-2.4.</p><p>Code is available on <a href="https://github.com/mrhaki/Spocklight/tree/master/Samples/include-exclude-interface">Github</a></p
+</div>
+
+<p>
+    <a href="http://mrhaki.blogspot.com/2015/08/spocklight-include-or-exclude.html">Original blog post</a> written on August 27, 2015.
+</p>
+
+</body>
+</html>

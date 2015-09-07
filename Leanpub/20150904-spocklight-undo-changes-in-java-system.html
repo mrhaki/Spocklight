@@ -1,0 +1,45 @@
+<html>
+<head>
+</head>
+<body>
+
+<h3 class="post-title">Undo Changes in Java System Properties</h3>
+
+<div class="post">
+<p>If we need to add a Java system property or change the value of a Java system property inside our specification, then the change is kept as long as the JVM is running. We can make sure that  changes to Java system properties are restored after a feature method has run. Spock offers the <code>RestoreSystemProperties</code> extension that saves the current Java system properties before a method is run and restores the values after the method is finished. We use the extension with the <code>@RestoreSystemProperties</code> annotation. The annotation can be applied at specification level or per feature method.</p><p>In the following example we see that changes to the Java system properties in the first method are undone again in the second method:</p><pre class="brush:groovy">package com.mrhaki.spock
+
+import spock.lang.Specification
+import spock.lang.Stepwise
+import spock.util.environment.RestoreSystemProperties
+
+// Use Stepwise extension so the order
+// of method invocation is guaranteed.
+@Stepwise
+class SysSpec extends Specification {
+
+    // Changes to Java system properties in this
+    // method are undone once the method is done.
+    @RestoreSystemProperties
+    def "first method adds a Java system property"() {
+        setup:
+        System.properties['spockAdded'] = 'Spock is gr8'
+
+        expect:
+        System.properties['spockAdded'] == 'Spock is gr8'
+    }
+
+    def "second method has no access to the new property"() {
+        expect:
+        !System.getProperty('spockAdded')
+    }
+
+}
+</pre><p>Written with Spock 1.0-groovy-2.4.</p
+</div>
+
+<p>
+    <a href="http://mrhaki.blogspot.com/2015/09/spocklight-undo-changes-in-java-system.html">Original blog post</a> written on September 04, 2015.
+</p>
+
+</body>
+</html>

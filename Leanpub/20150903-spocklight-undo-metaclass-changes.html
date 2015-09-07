@@ -1,0 +1,93 @@
+<html>
+<head>
+</head>
+<body>
+
+<h3 class="post-title">Undo MetaClass Changes</h3>
+
+<div class="post">
+<p>Spock has the extension <code>ConfineMetaClassChanges</code> that can be used to encapsulate meta class changes to a feature method or specification. We must apply the annotation <code>@ConfineMetaClassChanges</code> to a feature method or to a whole specification to use this extension. Spock replaces the original meta class with a new one before a feature method is executed. After execution of a feature method the original meta class is used again. We could this by hand using the <code>setup</code>, <code>setupSpec</code> and their counter parts <code>cleanup</code> and <code>cleanupSpec</code>, but using this extension is so much easier. We must specify the class or classes whose meta class changes need to be confined as the value for the annotation.<br />
+</p><p>In the following example we add a new method <code>asPirate</code> to the <code>String</code> class. We apply the <code>@ConfineMetaClassChanges</code> to a method. This means the new method is only available inside the feature method.<br />
+<pre class="brush:groovy">package com.mrhaki.spock
+
+import spock.lang.Specification
+import spock.lang.Stepwise
+import spock.util.mop.ConfineMetaClassChanges
+
+// We use @Stepwise in this specification
+// to show that changes in the metaClass
+// done in the first feature method do not
+// work in the second feature method.
+@Stepwise
+class PirateTalkSpec extends Specification {
+
+    // After this feature method is finished,
+    // the metaClass changes to the given
+    // class (String in our case) are reverted.
+    @ConfineMetaClassChanges([String])
+    def "talk like a pirate"() {
+        setup:
+        String.metaClass.asPirate = { ->
+            return "Yo-ho-ho, ${delegate}"
+        }
+
+        expect:
+        'mrhaki'.asPirate() == 'Yo-ho-ho, mrhaki'
+    }
+
+    // In this feature method we no longer
+    // can use the asPirate() method that was
+    // added to the metaClass.
+    def "keep on talking like a pirate"() {
+        when:
+        'hubert'.asPirate()
+
+        then:
+        thrown(MissingMethodException)
+    }
+
+}
+
+</pre><p>In the following example code we apply the <code>@ConfineMetaClassChanges</code> to the whole class. Now we see that the new method <code>asPirate</code> is still available in another feature method, than the one that defined it.</p><pre class="brush:groovy">package com.mrhaki.spock
+
+import spock.lang.Specification
+import spock.lang.Stepwise
+import spock.util.mop.ConfineMetaClassChanges
+
+// We use @Stepwise in this specification
+// to show that changes in the metaClass
+// done in the first feature method still
+// work in the second.
+@Stepwise
+// If set a class level then the
+// changes done to the metaClass of
+// the given class (String in our
+// example) are reverted after the
+// specification is finished.
+@ConfineMetaClassChanges([String])
+class PirateTalkSpec extends Specification {
+
+    def "talk like a pirate"() {
+        setup:
+        String.metaClass.asPirate = { ->
+            return "Yo-ho-ho, ${delegate}"
+        }
+
+        expect:
+        'mrhaki'.asPirate() == 'Yo-ho-ho, mrhaki'
+    }
+
+    def "keep on talking like a pirate"() {
+        expect:
+        'hubert'.asPirate() == 'Yo-ho-ho, hubert'
+    }
+}
+</pre><p>This post is very much inspired by <a href="http://blog.jdriven.com/2014/11/spock-using-confinemetaclasschanges-using-metaclass-mocking/">this blog post</a> of my colleague Albert van Veen.</p><p>Written with Spock 1.0-groovy-2.4.</p
+</div>
+
+<p>
+    <a href="http://mrhaki.blogspot.com/2015/09/spocklight-undo-metaclass-changes.html">Original blog post</a> written on September 03, 2015.
+</p>
+
+</body>
+</html>

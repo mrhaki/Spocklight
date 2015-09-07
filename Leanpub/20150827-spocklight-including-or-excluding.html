@@ -1,0 +1,100 @@
+<html>
+<head>
+</head>
+<body>
+
+<h3 class="post-title">Including or Excluding Specifications Based On Annotations</h3>
+
+<div class="post">
+<p>One of the lesser known and documented features of Spock if the external Spock configuration file. In this file we can for example specify which specifications to include or exclude from a test run. We can specify a class name (for example a base specification class, like <code>DatabaseSpec</code>) or an annotation. In this post we see how to use annotations to have some specifications run and others not.</p><p>The external Spock configuration file is actually a Groovy script file. We must specify a <code>runner</code> method with a closure argument where we configure basically the test runner. To include specification classes or methods with a certain annotation applied to them we configure the <code>include</code> property of the test runner. To exclude a class or method we use the <code>exclude</code> property. Because the configuration file is a Groovy script we can use everything Groovy has to offer, like conditional statements, <code>println</code> statements and more.</p><p>Spock looks for a file named <code>SpockConfig.groovy</code> in the classpath of the test execution and in in the <code>USER_HOME/.spock</code> directory. We can also use the Java system property <code>spock.configuration</code> with a file name for the configuration file.</p><p>In the following example we first define a simple annotation <code>Remote</code>. This annotation can be applied to a class or method:</p><pre class="brush:groovy">package com.mrhaki.spock
+
+import java.lang.annotation.ElementType
+import java.lang.annotation.Retention
+import java.lang.annotation.RetentionPolicy
+import java.lang.annotation.Target
+
+@Target([ElementType.TYPE, ElementType.METHOD])
+@Retention(RetentionPolicy.RUNTIME)
+@interface Remote {
+}
+</pre><p>We write a simple Spock specification where we apply the <code>Remote</code> annotation to one of the methods:</p><pre class="brush:groovy">package com.mrhaki.spock
+
+import spock.lang.Specification
+
+class WordRepositorySpec extends Specification {
+
+    @Remote  // Apply our Remote annotation.
+    def "test remote access"() {
+        given:
+        final RemoteAccess access = new RemoteAccess()
+
+        expect:
+        access.findWords('S') == ['Spock']
+    }
+
+    def "test local access"() {
+        given:
+        final LocalAccess access = new LocalAccess()
+
+        expect:
+        access.findWords('S') == ['Spock']
+    }
+
+}
+</pre><p>Next we create a Spock configuration file:</p><pre class="brush:groovy">import com.mrhaki.spock.Remote
+
+runner {
+    // This is Groovy script and we 
+    // add arbitrary code.
+    println "Using RemoteSpockConfig"
+
+    // Include only test classes or test
+    // methods with the @Remote annotation
+    include Remote
+
+    // Alternative syntax
+    // to only look for annotations.
+    // include {
+    //     annotation Remote
+    // }
+
+    
+    // We can also add a condition in
+    // the configuration file.
+    // In this case we check for a Java
+    // system property and if set the
+    // specs with @Remote are not run.
+    if (System.properties['spock.ignore.Remote']) {
+        exclude Remote
+    }
+}
+</pre><p>When we run the <code>WordRepositorySpec</code> and our configuration file is on the classpath only the specifications with the <code>@Remote</code> annotation are executed. Let's apply this in a simple Gradle build file. In this case we save the configuration file as <code>src/test/resources/RemoteSpockConfig.groovy</code>, we create a new test task <code>remoteTest</code> and set the Java system property <code>spock.configuration</code>:</p><pre class="brush:groovy">apply plugin: 'groovy'
+
+repositories {
+    jcenter()
+}
+
+dependencies {
+    compile 'org.codehaus.groovy:groovy-all:2.4.4'
+    testCompile 'org.spockframework:spock-core:1.0-groovy-2.4'
+}
+
+// New test task with specific 
+// Spock configuration file.
+task remoteTest(type: Test) {
+    // This task belongs to Verification task group.
+    group = 'Verification'
+
+    // Set Spock configuration file when running
+    // this test task.
+    systemProperty 'spock.configuration', 'RemoteSpockConfig.groovy'
+}
+</pre><p>Now when we execute the Gradle <code>test</code> task all specifications are executed:</p><div class="separator" style="clear: both; text-align: center;"><a href="http://4.bp.blogspot.com/-rQwZtNNID1s/Vd8Re4pRJWI/AAAAAAAALNM/vLBUXafNzfU/s1600/spock-config-report1.png" imageanchor="1" style="margin-left: 1em; margin-right: 1em;"><img border="0" src="http://4.bp.blogspot.com/-rQwZtNNID1s/Vd8Re4pRJWI/AAAAAAAALNM/vLBUXafNzfU/s320/spock-config-report1.png" /></a></div><p class="clear:both;">And when we run <code>remoteTest</code> only the specification with the <code>@Remote</code> annotation are executed:</p><div class="separator" style="clear: both; text-align: center;"><a href="http://3.bp.blogspot.com/-fVMB-5SCa-Q/Vd8Rm8UlyqI/AAAAAAAALNQ/00oN9_TlOgY/s1600/spock-config-report2.png" imageanchor="1" style="margin-left: 1em; margin-right: 1em;"><img border="0" src="http://3.bp.blogspot.com/-fVMB-5SCa-Q/Vd8Rm8UlyqI/AAAAAAAALNQ/00oN9_TlOgY/s320/spock-config-report2.png" /></a></div><p class="clear:both">Written with Gradle 2.6 and Spock 1.0-groovy-2.4.</p><p>The code is available on <a href="https://github.com/mrhaki/Spocklight/tree/master/Samples/include-exclude-annotation">Github</a></p
+</div>
+
+<p>
+    <a href="http://mrhaki.blogspot.com/2015/08/spocklight-including-or-excluding.html">Original blog post</a> written on August 27, 2015.
+</p>
+
+</body>
+</html>
